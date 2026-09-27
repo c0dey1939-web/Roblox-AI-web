@@ -2,261 +2,1045 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prism AI 3 - Roblox Assistant Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Midtrans Snap Script (Replace data-client-key with your Client Key) -->
-    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="YOUR_MIDTRANS_CLIENT_KEY"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Prism AI 3 - Pro Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        .chat-scroll::-webkit-scrollbar { width: 6px; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        :root {
+            --bg-sidebar: #1E1F22;
+            --bg-main: #131314;
+            --bg-surface: #1E1F22;
+            --bg-input: #282A2D;
+            --text-main: #E3E3E3;
+            --text-muted: #8E918F;
+            --accent-gemini: #A8C7FA;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --code-bg: #0B0B0C;
+            --danger: #F2B8B5;
+            --success: #6DD58C;
+            --vip-gold: #F59E0B;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-main); color: var(--text-main); height: 100vh; height: 100dvh; display: flex; overflow: hidden; }
+
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px);
+            z-index: 199; display: none; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .sidebar-overlay.open { display: block; opacity: 1; }
+
+        .sidebar {
+            position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
+            background: var(--bg-sidebar); z-index: 200; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; padding: 16px; gap: 12px; border-right: 1px solid var(--border-color);
+        }
+        .sidebar.open { left: 0; }
+
+        .new-chat-pill {
+            background: #282A2D; color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 12px 16px; border-radius: 28px; font-size: 0.88rem; font-weight: 500; cursor: pointer;
+            display: flex; align-items: center; gap: 12px; transition: background 0.2s;
+        }
+        .new-chat-pill:hover { background: #333538; }
+        .new-chat-pill svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .sidebar-section-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); padding: 8px 12px; letter-spacing: 0.5px; }
+        .history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; scrollbar-width: thin; }
+        
+        .history-item-wrapper { position: relative; width: 100%; }
+        
+        .history-item {
+            padding: 10px 14px; border-radius: 20px; font-size: 0.85rem; color: var(--text-main);
+            cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.2s;
+            width: 100%;
+        }
+        .history-item:hover { background: var(--bg-input); }
+        .history-item.active { background: #333538; font-weight: 600; }
+        .history-item-left { display: flex; align-items: center; gap: 10px; overflow: hidden; flex: 1; }
+        .history-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .history-item svg { width: 16px; height: 16px; fill: var(--text-muted); flex-shrink: 0; }
+        
+        .history-popup-menu {
+            position: absolute; right: 10px; top: 100%; background: var(--bg-input);
+            border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            display: none; z-index: 210; padding: 4px; min-width: 130px;
+        }
+        .history-popup-menu.show { display: block; }
+        .popup-delete-btn {
+            background: transparent; border: none; color: var(--danger); width: 100%; text-align: left;
+            padding: 8px 12px; font-size: 0.82rem; font-weight: 500; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .popup-delete-btn:hover { background: rgba(242,184,181,0.1); }
+        .popup-delete-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+        .clear-all-chats-btn {
+            background: rgba(242, 184, 181, 0.08); border: 1px solid rgba(242, 184, 181, 0.2); color: var(--danger);
+            padding: 10px 14px; border-radius: 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; margin-top: auto;
+        }
+        .clear-all-chats-btn:hover { background: rgba(242, 184, 181, 0.15); }
+        .clear-all-chats-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100%; width: 100%; background-color: var(--bg-main); overflow: hidden; }
+
+        .app-header { padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); flex-shrink: 0; }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .menu-btn {
+            background: transparent; border: none; color: var(--text-main); width: 40px; height: 40px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;
+        }
+        .menu-btn:hover { background: var(--bg-surface); }
+        .menu-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+        .brand-container { display: flex; align-items: center; gap: 10px; }
+        
+        .brand-logo-img {
+            width: 36px; height: 36px; border-radius: 8px; object-fit: cover;
+            border: 1px solid var(--border-color); flex-shrink: 0;
+        }
+
+        .brand-info-container { display: flex; flex-direction: column; gap: 2px; }
+        .brand-title-wrap { display: flex; align-items: center; gap: 6px; }
+        .brand-title { font-size: 1.1rem; font-weight: 600; color: var(--text-main); letter-spacing: -0.3px; }
+        .status-badge {
+            padding: 2px 6px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+        }
+        .badge-free { background: #374151; color: #9ca3af; }
+        .badge-vip { background: linear-gradient(90deg, #f59e0b, #d97706); color: #000; font-weight: 800; }
+
+        .active-model-indicator { font-size: 0.72rem; color: var(--accent-gemini); font-family: 'Fira Code', monospace; display: flex; align-items: center; gap: 4px; }
+
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .token-badge {
+            background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--accent-gemini);
+            padding: 6px 14px; border-radius: 16px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+        .token-badge svg { width: 14px; height: 14px; fill: currentColor; }
+        
+        .setting-btn {
+            background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main);
+            width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;
+        }
+        .setting-btn:hover { background: #333538; }
+        .setting-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .chat-container { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; align-items: center; scroll-behavior: smooth; }
+        .chat-inner { width: 100%; max-width: 768px; display: flex; flex-direction: column; gap: 24px; }
+
+        .message { display: flex; gap: 16px; width: 100%; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .message.user { justify-content: flex-end; }
+
+        .avatar {
+            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; font-weight: 600; flex-shrink: 0; border: 1px solid var(--border-color);
+            background: var(--bg-surface); color: var(--text-main); overflow: hidden; object-fit: cover;
+        }
+
+        .message-content { max-width: 85%; font-size: 0.95rem; line-height: 1.6; color: var(--text-main); word-break: break-word; white-space: pre-wrap; }
+        .message.user .message-content { background-color: var(--bg-surface); padding: 12px 18px; border-radius: 20px 20px 4px 20px; white-space: normal; }
+        .message.bot .message-content { padding-top: 4px; }
+
+        .attachment-preview-img { max-width: 200px; max-height: 200px; border-radius: 8px; margin-bottom: 8px; display: block; border: 1px solid var(--border-color); }
+        .file-pill-tag { background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 6px; display: inline-flex; align-items: center; gap: 6px; color: var(--accent-gemini); }
+
+        .typing-bubble-container {
+            display: flex; align-items: center; gap: 6px; padding: 12px 18px;
+            background: var(--bg-surface); border-radius: 4px 20px 20px 20px; width: fit-content; border: 1px solid var(--border-color);
+        }
+        .typing-dot {
+            width: 8px; height: 8px; background-color: var(--accent-gemini); border-radius: 50%;
+            animation: geminiBounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes geminiBounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+            40% { transform: scale(1.0); opacity: 1; }
+        }
+
+        .code-container { margin-top: 12px; margin-bottom: 8px; background-color: var(--code-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .code-header {
+            display: flex; justify-content: space-between; align-items: center; padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted);
+        }
+        .code-action-btn {
+            background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 500; transition: background 0.2s;
+        }
+        .code-action-btn:hover { background: #333538; }
+        pre { padding: 14px; overflow-x: auto; font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #CE9178; line-height: 1.5; white-space: pre; }
+
+        .input-area-wrapper { padding: 12px 16px 16px 16px; display: flex; flex-direction: column; align-items: center; background: var(--bg-main); gap: 8px; flex-shrink: 0; }
+        
+        .input-outer {
+            width: 100%; max-width: 768px; background: var(--bg-input); border: 1px solid var(--border-color);
+            border-radius: 28px; padding: 6px 8px 6px 12px; display: flex; align-items: center; gap: 6px;
+            transition: border-color 0.2s, box-shadow 0.2s; position: relative;
+        }
+        .input-outer:focus-within { border-color: var(--accent-gemini); box-shadow: 0 0 0 1px var(--accent-gemini); }
+        
+        input[type="text"] { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); font-size: 0.95rem; min-width: 0; padding: 6px 0; }
+        input[type="text"]::placeholder { color: var(--text-muted); }
+        input[type="text"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .tool-icon-btn {
+            background: transparent; border: none; color: var(--text-muted); width: 36px; height: 36px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: color 0.2s, background 0.2s; flex-shrink: 0;
+        }
+        .tool-icon-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .tool-icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .voice-wave-container { display: none; align-items: center; gap: 3px; height: 20px; padding: 0 8px; }
+        .voice-wave-container.active { display: flex; }
+        .wave-bar {
+            width: 3px; height: 6px; background-color: var(--danger); border-radius: 2px;
+            animation: waveBounce 0.8s infinite ease-in-out alternate;
+        }
+        .wave-bar:nth-child(2) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.4s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.1s; }
+        @keyframes waveBounce { 0% { height: 6px; } 100% { height: 18px; } }
+
+        .send-btn {
+            background: var(--accent-gemini); color: #001D35; border: none; width: 38px; height: 38px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s; flex-shrink: 0;
+        }
+        .send-btn:hover { opacity: 0.9; }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .send-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+        .selected-file-preview-banner {
+            width: 100%; max-width: 768px; background: var(--bg-surface); border: 1px solid var(--border-color);
+            padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; display: none; align-items: center; justify-content: space-between; color: var(--accent-gemini);
+        }
+
+        .suggestions-row { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 6px 16px; max-width: 768px; width: 100%; margin: 0 auto; scrollbar-width: none; flex-shrink: 0; }
+        .chip {
+            background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 6px 14px; border-radius: 16px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; transition: background 0.2s;
+        }
+        .chip:hover { background: #333538; }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 300;
+        }
+        .modal-card {
+            background: var(--bg-sidebar); border: 1px solid var(--border-color); width: 90%; max-width: 420px;
+            border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
+        .modal-label { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 4px; }
+        .modal-input, .modal-select, .modal-textarea {
+            background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 12px; border-radius: 12px; font-size: 0.9rem; width: 100%; outline: none; resize: vertical;
+        }
+        .modal-btn { background: var(--accent-gemini); color: #001D35; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .modal-btn:hover { opacity: 0.9; }
+        .modal-btn-claim { background: #10b981; color: #000; }
+        .modal-btn-vip { background: linear-gradient(90deg, #f59e0b, #b45309); color: #fff; }
+        .modal-btn-danger { background: rgba(242, 184, 181, 0.15); color: var(--danger); border: 1px solid rgba(242, 184, 181, 0.3); padding: 10px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+        
+        .developer-box {
+            background: rgba(242, 184, 181, 0.08); border: 1px solid rgba(242, 184, 181, 0.2);
+            padding: 14px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .close-modal { background: transparent; color: var(--text-muted); border: none; cursor: pointer; text-align: center; font-size: 0.88rem; margin-top: 4px; }
+
+        .token-info-box {
+            background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; font-size: 0.85rem;
+        }
+        .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
+        .info-row:last-child { border-bottom: none; }
+
+        .pay-option {
+            background: var(--bg-input); border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; margin-top: 8px; cursor: pointer; transition: border-color 0.2s;
+        }
+        .pay-option:hover { border-color: var(--accent-gemini); }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
+<body onclick="closeAllPopups(event)">
 
-    <!-- Header Navigation -->
-    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-3">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-500/20">
-                P3
-            </div>
-            <div>
-                <h1 class="font-bold text-base leading-none text-white">Prism AI 3</h1>
-                <span class="text-xs text-indigo-400 font-medium">Pro Roblox Assistant</span>
-            </div>
-        </div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-        <div class="flex items-center space-x-3">
-            <!-- Quota Badge -->
-            <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center space-x-2">
-                <i class="fa-solid fa-bolt text-yellow-400 text-xs"></i>
-                <span class="text-xs font-semibold text-slate-300">Quota: <span id="quota-display" class="text-emerald-400 font-bold">0</span></span>
-            </div>
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="appSidebar">
+        <button class="new-chat-pill" onclick="createNewChat()">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            New Chat
+        </button>
+        <div class="sidebar-section-title">Recent Conversations</div>
+        <div class="history-list" id="historyList"></div>
+        <button class="clear-all-chats-btn" onclick="clearAllConversations()">
+            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            Delete All Conversations
+        </button>
+    </div>
 
-            <!-- Top Up Button -->
-            <button onclick="openPaymentModal()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-md flex items-center space-x-1.5">
-                <i class="fa-solid fa-plus text-[10px]"></i>
-                <span>Top Up</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Chat Container -->
-    <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col justify-between overflow-hidden">
-        
-        <!-- Chat History Window -->
-        <div id="chat-window" class="chat-scroll flex-1 overflow-y-auto space-y-4 pr-2 mb-4 min-h-[400px]">
-            <!-- Welcome Box -->
-            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-center my-6">
-                <div class="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                    <i class="fa-solid fa-robot text-xl"></i>
-                </div>
-                <h2 class="text-lg font-bold text-white mb-1">Welcome to Prism AI 3!</h2>
-                <p class="text-xs text-slate-400 max-w-md mx-auto mb-4">Ready to generate Luau scripts, Roblox decal/image prompts, and assist with Studio errors.</p>
-                
-                <div class="grid grid-cols-2 gap-2 text-left max-w-md mx-auto">
-                    <button onclick="setPrompt('Generate a Luau script for a Roblox Studio Leaderstats system')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 rounded-xl text-xs border border-slate-700/50 text-slate-300 transition">
-                        ⚡ <span class="font-medium">Leaderstats Script</span>
-                    </button>
-                    <button onclick="setPrompt('Generate an AI prompt for creating a Roblox shirt decal texture')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 rounded-xl text-xs border border-slate-700/50 text-slate-300 transition">
-                        🎨 <span class="font-medium">Decal AI Prompt</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Input Box Section -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-xl">
-            <form id="chat-form" onsubmit="handleSend(event)" class="flex items-end space-x-2">
-                <textarea id="user-input" rows="1" placeholder="Type Luau script instructions or Roblox ideas..." class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none resize-none px-2 py-1 max-h-32" onkeydown="checkSubmit(event)"></textarea>
-                <button type="submit" id="send-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white w-9 h-9 rounded-xl flex items-center justify-center transition flex-shrink-0">
-                    <i class="fa-solid fa-paper-plane text-xs"></i>
+    <!-- MAIN APP WRAPPER -->
+    <div class="main-wrapper">
+        <header class="app-header">
+            <div class="header-left">
+                <button class="menu-btn" onclick="toggleSidebar()">
+                    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
                 </button>
-            </form>
+                <div class="brand-container">
+                    <img class="brand-logo-img" src="https://files.catbox.moe/45l6qu.jpg" alt="Logo" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&q=80';">
+                    <div class="brand-info-container">
+                        <div class="brand-title-wrap">
+                            <span class="brand-title">Prism AI</span>
+                            <span id="vipBadge" class="status-badge badge-free">FREE</span>
+                        </div>
+                        <div class="active-model-indicator" id="activeModelDisplay">
+                            <svg style="width:10px;height:10px;fill:currentColor;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+                            Model: Auto Free Router
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="token-badge" id="tokenDisplay" onclick="openTokenModal()">
+                    <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                    <span id="tokenText">30 Tokens</span>
+                </div>
+                <button class="setting-btn" onclick="openSettingsModal()">
+                    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c-.5.38-1.03.7-1.62.94l-.36 2.54c-.05.24-.24.41-.48.41h-3.84c-.24 0-.44-.17-.47-.41l-.36-2.54c-.59-.24-1.13-.56-1.62-.94l-2.39.96c-.22.08-.47 0-.59-.22l-1.92-3.32c-.12-.22-.07-.47.12-.61l2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- CHAT CONTAINER -->
+        <main class="chat-container" id="chatContainer">
+            <div class="chat-inner" id="chatInner">
+                <div class="message bot">
+                    <img class="avatar" src="https://files.catbox.moe/45l6qu.jpg" alt="AI" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&q=80';">
+                    <div class="message-content">Welcome to Prism AI Pro! How can I help you today?</div>
+                </div>
+            </div>
+        </main>
+
+        <div class="suggestions-row">
+            <div class="chip" onclick="quickSend('Create a Leaderstats system with Coins and Gems')">Leaderstats System</div>
+            <div class="chip" onclick="quickSend('Create an Admin Fly GUI script with toggle keybind')">Admin Fly GUI</div>
         </div>
-    </main>
 
-    <!-- Top Up Payment Modal -->
-    <div id="payment-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 relative shadow-2xl">
-            <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-
-            <div class="text-center mb-6">
-                <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                    <i class="fa-solid fa-wallet text-xl"></i>
-                </div>
-                <h3 class="font-bold text-lg text-white">Top Up AI Quota</h3>
-                <p class="text-xs text-slate-400">Select an instant AI access package for Prism AI 3</p>
+        <!-- INPUT AREA -->
+        <div class="input-area-wrapper">
+            <div class="selected-file-preview-banner" id="filePreviewBanner">
+                <span id="filePreviewName">Attached file</span>
+                <span style="cursor: pointer; font-weight: bold;" onclick="clearAttachment()">✕</span>
             </div>
-
-            <div class="space-y-3 mb-6">
-                <div class="border border-indigo-500 bg-indigo-500/10 p-4 rounded-2xl flex justify-between items-center cursor-pointer">
-                    <div>
-                        <div class="font-bold text-sm text-white">Pro Basic Package</div>
-                        <div class="text-xs text-indigo-300">50x AI Access Queries</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-extrabold text-sm text-emerald-400">Rp 10,000</div>
-                    </div>
+            <div class="input-outer">
+                <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelected(event)">
+                <button class="tool-icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach File or Photo">
+                    <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.1.9 2 2 2s2-.9 2-2V5c0-2.21-1.79-4-4-4S6 2.79 6 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+                </button>
+                <button class="tool-icon-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="Voice Input">
+                    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                </button>
+                
+                <div class="voice-wave-container" id="voiceWave">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
                 </div>
-            </div>
 
-            <button onclick="processPayment()" id="pay-btn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm">
-                Purchase Now
-            </button>
+                <input type="text" id="userInput" placeholder="Type a prompt or use voice..." onkeypress="handleKeyPress(event)">
+                
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send Message">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Application Script Logic -->
+    <!-- MODALS -->
+    <div class="modal-overlay" id="tokenModal">
+        <div class="modal-card">
+            <div class="modal-title">Prism Token & Eco-System</div>
+            
+            <div class="token-info-box">
+                <div class="info-row"><span style="color:var(--text-muted);">Saldo Token Saat Ini</span><strong id="mTokenCount" style="color:var(--accent-gemini);">30</strong></div>
+                <div class="info-row"><span style="color:var(--text-muted);">Laju Token Harian</span><span id="mRateVal">1 Token / Hari</span></div>
+                <div class="info-row"><span style="color:var(--text-muted);">Limit Offline Cap</span><span id="mCapVal">28 Token</span></div>
+                <div class="info-row"><span style="color:var(--text-muted);">Unclaimed Token</span><span id="mPendingVal" style="color:var(--vip-gold);">0 Token</span></div>
+                <div class="info-row"><span style="color:var(--text-muted);">Status VIP Subscription</span><span id="mSubStatusVal">Gratis</span></div>
+            </div>
+
+            <button class="modal-btn modal-btn-claim" onclick="claimOfflineTokens()">Klaim Token Offline</button>
+            <button class="modal-btn" style="background:#2563eb; color:#fff;" onclick="openPaymentModal('token')">Beli 10 Token (Rp 3.000)</button>
+            <button id="mBtnSubscribe" class="modal-btn modal-btn-vip" onclick="openPaymentModal('sub')">Subscribe VIP (Rp 10.000/bln)</button>
+
+            <button class="close-modal" onclick="closeTokenModal()">Tutup</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-card">
+            <div class="modal-title" id="payModalTitle">Metode Pembayaran</div>
+            <div id="payModalPrice" style="color: var(--accent-gemini); font-weight: bold; font-size: 0.9rem;"></div>
+
+            <div class="pay-option" onclick="processPayment('QRIS')">
+                <strong>QRIS (Auto Scan)</strong><br>
+                <small style="color: var(--text-muted);">GoPay, OVO, DANA, ShopeePay</small>
+            </div>
+            <div class="pay-option" onclick="processPayment('VA')">
+                <strong>Virtual Account Bank</strong><br>
+                <small style="color: var(--text-muted);">BCA, Mandiri, BRI, BNI</small>
+            </div>
+
+            <button class="modal-btn-danger" style="margin-top: 10px;" onclick="closePaymentModal()">Batal</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card">
+            <div class="modal-title">Settings & Preferences</div>
+
+            <div id="developerPanelSection" style="display:none;" class="developer-box">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #F2B8B5;">PRISM DEV CONTROL PANEL</div>
+                <div class="modal-label">Status: <span style="color: var(--success); font-weight: bold;">DEVELOPER ACCESS ACTIVE</span></div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0;">
+                    <button class="modal-btn" style="padding:6px; font-size:0.75rem;" onclick="devToggleVIP()">Toggle VIP</button>
+                    <button class="modal-btn" style="padding:6px; font-size:0.75rem;" onclick="devAddDays(1)">+1 Hari Offline</button>
+                    <button class="modal-btn" style="padding:6px; font-size:0.75rem;" onclick="devAddDays(7)">+7 Hari Offline</button>
+                    <button class="modal-btn" style="padding:6px; font-size:0.75rem;" onclick="devResetSystem()">Reset System</button>
+                </div>
+
+                <div>
+                    <div class="modal-label">Custom System Instruction:</div>
+                    <textarea id="customSystemPromptInput" class="modal-textarea" rows="3" placeholder="Enter custom developer instructions...">You are Prism AI, an expert Roblox Luau Developer. Always output clean Luau code inside ```luau ... ``` code blocks.</textarea>
+                </div>
+                <button class="modal-btn" onclick="saveCustomSystemPrompt()">Save Instruction</button>
+                <button class="modal-btn-danger" onclick="exitDeveloperMode()">Exit Developer Mode</button>
+            </div>
+
+            <div>
+                <div class="modal-label">Select Model AI:</div>
+                <select id="modelSelect" class="modal-select" onchange="changeModelSetting()">
+                    <option value="openrouter/free">Auto Free Router</option>
+                    <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B</option>
+                    <option value="google/gemini-flash-1.5:free">Gemini Flash 1.5</option>
+                </select>
+            </div>
+
+            <div id="authCodeContainer">
+                <div class="modal-label">Developer Access Code:</div>
+                <input type="text" id="authCodeInput" class="modal-input" placeholder="Enter developer key...">
+                <button class="modal-btn" style="margin-top: 10px;" onclick="verifyAuthCode()">Verify Code</button>
+            </div>
+
+            <button class="close-modal" onclick="closeSettingsModal()">Close</button>
+        </div>
+    </div>
+
     <script>
-        let quota = parseInt(localStorage.getItem('prism_quota') || '5'); // Default 5 starting quota
-        updateQuotaUI();
+        const API_KEY = "PASTE_API_KEY_BARU_DI_SINI";
+        const DEVELOPER_SECRET = "~EX=Free@1RPIND";
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-        function updateQuotaUI() {
-            document.getElementById('quota-display').innerText = quota;
-            localStorage.setItem('prism_quota', quota);
+        // AVATAR DENGAN LINK CATBOX + FALLBACK SENSOR
+        const BOT_AVATAR_URL = "https://files.catbox.moe/45l6qu.jpg";
+        const BOT_AVATAR_HTML = `<img class="avatar" src="${BOT_AVATAR_URL}" alt="AI" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&q=80';">`;
+
+        let state = JSON.parse(localStorage.getItem("prism_user_state")) || {
+            tokens: 30,
+            isVip: false,
+            vipExpiresAt: null,
+            lastClaimTime: Date.now()
+        };
+
+        function saveState() {
+            localStorage.setItem("prism_user_state", JSON.stringify(state));
         }
 
-        function setPrompt(text) {
-            document.getElementById('user-input').value = text;
-            document.getElementById('user-input').focus();
-        }
+        function updateSystemUI() {
+            let now = Date.now();
 
-        function checkSubmit(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend(e);
-            }
-        }
-
-        async function handleSend(e) {
-            e.preventDefault();
-            const inputEl = document.getElementById('user-input');
-            const message = inputEl.value.trim();
-
-            if (!message) return;
-
-            if (quota <= 0) {
-                alert('Your AI quota is exhausted! Please top up to continue.');
-                openPaymentModal();
-                return;
+            if (state.isVip && state.vipExpiresAt !== 'PERMANENT' && now > state.vipExpiresAt) {
+                state.isVip = false;
+                state.vipExpiresAt = null;
+                saveState();
             }
 
-            // Append User Message
-            appendMessage('user', message);
-            inputEl.value = '';
+            let isVip = state.isVip;
+            let dailyRate = isVip ? 5 : 1;
+            let maxCap = isVip ? 50 : 28;
 
-            // Decrease Quota
-            quota--;
-            updateQuotaUI();
+            let daysPassed = Math.floor((now - state.lastClaimTime) / ONE_DAY_MS);
+            let pending = daysPassed * dailyRate;
+            if (pending > maxCap) { pending = maxCap; }
 
-            // Loading state
-            const loadingId = appendLoading();
+            document.getElementById("tokenText").innerText = state.tokens + " Tokens";
+            let vipBadge = document.getElementById("vipBadge");
 
-            try {
-                // Call Vercel Backend API
-                const response = await fetch('/api/payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'chat', prompt: message })
-                });
+            if (isVip) {
+                vipBadge.innerText = "VIP";
+                vipBadge.className = "status-badge badge-vip";
+            } else {
+                vipBadge.innerText = "FREE";
+                vipBadge.className = "status-badge badge-free";
+            }
 
-                const data = await response.json();
-                removeMessage(loadingId);
+            document.getElementById("mTokenCount").innerText = state.tokens;
+            document.getElementById("mRateVal").innerText = dailyRate + " Token / Hari";
+            document.getElementById("mCapVal").innerText = maxCap + " Token";
+            document.getElementById("mPendingVal").innerText = pending + " Token";
 
-                if (data.reply) {
-                    appendMessage('ai', data.reply);
+            let btnSub = document.getElementById("mBtnSubscribe");
+            let subStatusVal = document.getElementById("mSubStatusVal");
+
+            if (isVip) {
+                btnSub.innerText = "VIP SUBSCRIPTION ACTIVE";
+                btnSub.disabled = true;
+
+                if (state.vipExpiresAt === 'PERMANENT') {
+                    subStatusVal.innerText = "Aktif (Dev Unlimited)";
                 } else {
-                    appendMessage('ai', 'Sorry, an issue occurred while processing AI response. Please try again later.');
+                    let daysLeft = Math.ceil((state.vipExpiresAt - now) / ONE_DAY_MS);
+                    subStatusVal.innerText = "Aktif (" + daysLeft + " Hari)";
                 }
-            } catch (err) {
-                removeMessage(loadingId);
-                appendMessage('ai', 'Failed to connect to the server.');
+            } else {
+                btnSub.innerText = "Subscribe VIP (Rp 10.000/bln)";
+                btnSub.disabled = false;
+                subStatusVal.innerText = "Gratis";
             }
         }
 
-        function appendMessage(sender, text) {
-            const chatWin = document.getElementById('chat-window');
-            const isUser = sender === 'user';
-            
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
-            
-            msgDiv.innerHTML = `
-                <div class="max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
-                    isUser 
-                    ? 'bg-indigo-600 text-white rounded-br-none' 
-                    : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
-                }">
-                    ${text.replace(/\n/g, '<br>')}
-                </div>
-            `;
+        function claimOfflineTokens() {
+            let now = Date.now();
+            let dailyRate = state.isVip ? 5 : 1;
+            let maxCap = state.isVip ? 50 : 28;
 
-            chatWin.appendChild(msgDiv);
-            chatWin.scrollTop = chatWin.scrollHeight;
+            let daysPassed = Math.floor((now - state.lastClaimTime) / ONE_DAY_MS);
+            let pending = daysPassed * dailyRate;
+            if (pending > maxCap) { pending = maxCap; }
+
+            if (pending > 0) {
+                state.tokens += pending;
+                state.lastClaimTime = now;
+                saveState();
+                alert("Klaim Sukses! +" + pending + " Token Prism telah dikreditkan.");
+            } else {
+                alert("Belum ada token offline yang terkumpul.");
+            }
+            updateSystemUI();
         }
 
-        function appendLoading() {
-            const chatWin = document.getElementById('chat-window');
-            const id = 'loading-' + Date.now();
-            const loadingDiv = document.createElement('div');
-            loadingDiv.id = id;
-            loadingDiv.className = 'flex justify-start';
-            loadingDiv.innerHTML = `
-                <div class="bg-slate-900 border border-slate-800 text-slate-400 rounded-2xl rounded-bl-none px-4 py-3 text-xs flex items-center space-x-2">
-                    <i class="fa-solid fa-circle-notch fa-spin text-indigo-400"></i>
-                    <span>Thinking...</span>
-                </div>
-            `;
-            chatWin.appendChild(loadingDiv);
-            chatWin.scrollTop = chatWin.scrollHeight;
-            return id;
-        }
-
-        function removeMessage(id) {
-            const el = document.getElementById(id);
-            if (el) el.remove();
-        }
-
-        function openPaymentModal() {
-            document.getElementById('payment-modal').classList.remove('hidden');
+        let currentPayType = null;
+        function openPaymentModal(type) {
+            currentPayType = type;
+            closeTokenModal();
+            document.getElementById("paymentModal").style.display = "flex";
+            if (type === 'sub') {
+                document.getElementById("payModalTitle").innerText = "Langganan Prism VIP";
+                document.getElementById("payModalPrice").innerText = "Total: Rp 10.000 / Bulan";
+            } else {
+                document.getElementById("payModalTitle").innerText = "Top Up 10 Prism Token";
+                document.getElementById("payModalPrice").innerText = "Total: Rp 3.000";
+            }
         }
 
         function closePaymentModal() {
-            document.getElementById('payment-modal').classList.add('hidden');
+            document.getElementById("paymentModal").style.display = "none";
         }
 
-        async function processPayment() {
-            try {
-                const response = await fetch('/api/payment', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_snap_token' })
+        function processPayment(method) {
+            closePaymentModal();
+            alert("Simulasi Pembayaran " + method + " Berhasil!");
+
+            if (currentPayType === 'sub') {
+                state.isVip = true;
+                state.vipExpiresAt = Date.now() + (30 * ONE_DAY_MS);
+            } else if (currentPayType === 'token') {
+                state.tokens += 10;
+            }
+            saveState();
+            updateSystemUI();
+        }
+
+        function devToggleVIP() {
+            if (state.isVip) {
+                state.isVip = false;
+                state.vipExpiresAt = null;
+            } else {
+                state.isVip = true;
+                state.vipExpiresAt = 'PERMANENT';
+            }
+            saveState();
+            updateSystemUI();
+        }
+
+        function devAddDays(days) {
+            state.lastClaimTime -= (days * ONE_DAY_MS);
+            saveState();
+            updateSystemUI();
+        }
+
+        function devResetSystem() {
+            state.tokens = 30;
+            state.isVip = false;
+            state.vipExpiresAt = null;
+            state.lastClaimTime = Date.now();
+            saveState();
+            updateSystemUI();
+        }
+
+        function openTokenModal() { updateSystemUI(); document.getElementById('tokenModal').style.display = 'flex'; }
+        function closeTokenModal() { document.getElementById('tokenModal').style.display = 'none'; }
+        function openSettingsModal() { document.getElementById('settingsModal').style.display = 'flex'; }
+        function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; }
+
+        let currentChatId = localStorage.getItem("prism_active_chat") || 'chat_' + Date.now();
+        let attachedFilePayload = null;
+        let isGenerating = false;
+
+        function getChatHistoryList() { return JSON.parse(localStorage.getItem("prism_chat_list") || "[]"); }
+
+        function saveCurrentChatMessages(messagesArray) {
+            localStorage.setItem("prism_msgs_" + currentChatId, JSON.stringify(messagesArray));
+            let list = getChatHistoryList();
+            let existingIndex = list.findIndex(item => item.id === currentChatId);
+            let firstUserMsg = messagesArray.find(m => m.sender === 'user');
+            let title = firstUserMsg ? firstUserMsg.text.substring(0, 20) + "..." : "New Chat";
+
+            if (existingIndex >= 0) {
+                list[existingIndex].title = title;
+            } else {
+                list.unshift({ id: currentChatId, title: title });
+            }
+            localStorage.setItem("prism_chat_list", JSON.stringify(list));
+            renderHistorySidebar();
+        }
+
+        function loadChat(chatId) {
+            currentChatId = chatId;
+            localStorage.setItem("prism_active_chat", chatId);
+            const chatInner = document.getElementById('chatInner');
+            chatInner.innerHTML = "";
+            let msgs = JSON.parse(localStorage.getItem("prism_msgs_" + chatId) || "[]");
+            
+            if (msgs.length === 0) {
+                // DEFAULT GREETING BAHASA INGGRIS
+                chatInner.innerHTML = `<div class="message bot">${BOT_AVATAR_HTML}<div class="message-content">Welcome to Prism AI Pro! How can I help you today?</div></div>`;
+            } else {
+                msgs.forEach(m => {
+                    if (m.sender === 'bot') {
+                        appendBotResponse(m.text, m.code, m.modelUsed, m.isFallback, false);
+                    } else {
+                        appendMessage(m.text, 'user', m.attachment, false);
+                    }
                 });
+            }
+            renderHistorySidebar();
+        }
 
-                const data = await response.json();
+        function createNewChat() {
+            currentChatId = 'chat_' + Date.now();
+            localStorage.setItem("prism_active_chat", currentChatId);
+            const chatInner = document.getElementById('chatInner');
+            // DEFAULT GREETING BAHASA INGGRIS
+            chatInner.innerHTML = `<div class="message bot">${BOT_AVATAR_HTML}<div class="message-content">New session started. How can I help you today?</div></div>`;
+            renderHistorySidebar();
+        }
 
-                if (data.token) {
-                    closePaymentModal();
-                    window.snap.pay(data.token, {
-                        onSuccess: function(result){
-                            quota += 50;
-                            updateQuotaUI();
-                            alert('Payment Successful! 50 AI Quota has been added.');
-                        },
-                        onPending: function(result){ alert('Waiting for payment completion...'); },
-                        onError: function(result){ alert('Payment failed.'); }
-                    });
-                } else {
-                    alert('Failed to retrieve Midtrans token.');
-                }
-            } catch (e) {
-                alert('A network error occurred.');
+        function toggleChatMenu(chatId, event) {
+            event.stopPropagation();
+            closeAllPopups();
+            const menuEl = document.getElementById('popup-menu-' + chatId);
+            if (menuEl) { menuEl.classList.toggle('show'); }
+        }
+
+        function closeAllPopups(event) {
+            const menus = document.querySelectorAll('.history-popup-menu');
+            menus.forEach(m => m.classList.remove('show'));
+        }
+
+        function deleteSpecificChat(chatId, event) {
+            event.stopPropagation();
+            if (!confirm("Are you sure you want to delete this conversation?")) return;
+
+            localStorage.removeItem("prism_msgs_" + chatId);
+            let list = getChatHistoryList();
+            list = list.filter(item => item.id !== chatId);
+            localStorage.setItem("prism_chat_list", JSON.stringify(list));
+
+            if (chatId === currentChatId) {
+                if (list.length > 0) { loadChat(list[0].id); } else { createNewChat(); }
+            } else {
+                renderHistorySidebar();
             }
         }
+
+        function clearAllConversations() {
+            if (!confirm("Are you sure you want to delete ALL conversations?")) return;
+            let list = getChatHistoryList();
+            list.forEach(item => { localStorage.removeItem("prism_msgs_" + item.id); });
+            localStorage.removeItem("prism_chat_list");
+            createNewChat();
+        }
+
+        function renderHistorySidebar() {
+            const listEl = document.getElementById('historyList');
+            let list = getChatHistoryList();
+            listEl.innerHTML = "";
+            list.forEach(item => {
+                let activeClass = item.id === currentChatId ? ' active' : '';
+                listEl.innerHTML += `
+                    <div class="history-item-wrapper">
+                        <div class="history-item${activeClass}" onclick="loadChat('${item.id}')" oncontextmenu="toggleChatMenu('${item.id}', event)">
+                            <div class="history-item-left" onclick="loadChat('${item.id}')">
+                                <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                                <span>${escapeHtml(item.title)}</span>
+                            </div>
+                            <button class="tool-icon-btn" style="width: 28px; height: 28px;" onclick="toggleChatMenu('${item.id}', event)" title="Options">
+                                <svg style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                            </button>
+                        </div>
+                        <div class="history-popup-menu" id="popup-menu-${item.id}">
+                            <button class="popup-delete-btn" onclick="deleteSpecificChat('${item.id}', event)">
+                                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                Delete Chat
+                            </button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function toggleSidebar() {
+            document.getElementById('appSidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('open');
+        }
+
+        function checkIsDeveloper() { return localStorage.getItem("prism_is_developer") === "true"; }
+
+        function initDeveloperSystem() {
+            if (checkIsDeveloper()) {
+                document.getElementById("developerPanelSection").style.display = "flex";
+                document.getElementById("authCodeContainer").style.display = "none";
+                let savedPrompt = localStorage.getItem("prism_custom_system");
+                if (savedPrompt) { document.getElementById("customSystemPromptInput").value = savedPrompt; }
+            } else {
+                document.getElementById("developerPanelSection").style.display = "none";
+                document.getElementById("authCodeContainer").style.display = "block";
+            }
+        }
+
+        function verifyAuthCode() {
+            const code = document.getElementById('authCodeInput').value.trim();
+            if (code === DEVELOPER_SECRET) {
+                localStorage.setItem("prism_is_developer", "true");
+                alert("Developer Access Verified!");
+                initDeveloperSystem();
+                closeSettingsModal();
+            } else {
+                alert("Invalid security code!");
+            }
+        }
+
+        function exitDeveloperMode() {
+            localStorage.removeItem("prism_is_developer");
+            localStorage.removeItem("prism_custom_system");
+            alert("Exited Developer Mode.");
+            initDeveloperSystem();
+            closeSettingsModal();
+        }
+
+        function saveCustomSystemPrompt() {
+            if (!checkIsDeveloper()) return;
+            const promptText = document.getElementById('customSystemPromptInput').value.trim();
+            localStorage.setItem("prism_custom_system", promptText);
+            alert("Custom system instruction saved!");
+        }
+
+        function changeModelSetting() {
+            const val = document.getElementById('modelSelect').value;
+            localStorage.setItem("prism_preferred_model", val);
+            const activeModelDisplay = document.getElementById('activeModelDisplay');
+            activeModelDisplay.innerHTML = `<svg style="width:10px;height:10px;fill:currentColor;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg> Model: ${val.split('/')[1] || val}`;
+            closeSettingsModal();
+        }
+
+        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+        function quickSend(text) { 
+            if (isGenerating) return;
+            document.getElementById('userInput').value = text; 
+            sendMessage(); 
+        }
+
+        function handleFileSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                attachedFilePayload = { name: file.name, type: file.type, data: e.target.result };
+                document.getElementById('filePreviewName').innerText = `Attached: ${file.name}`;
+                document.getElementById('filePreviewBanner').style.display = 'flex';
+            };
+            if (file.type.startsWith('image/')) { reader.readAsDataURL(file); } else { reader.readAsText(file); }
+        }
+
+        function clearAttachment() {
+            attachedFilePayload = null;
+            document.getElementById('filePreviewBanner').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+        }
+
+        let recognition = null;
+        function toggleVoiceInput() {
+            if (isGenerating) return;
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Voice recognition is not supported in this browser.");
+                return;
+            }
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!recognition) {
+                recognition = new SpeechRec();
+                recognition.lang = 'en-US';
+                recognition.onstart = () => { document.getElementById('voiceWave').classList.add('active'); };
+                recognition.onresult = (e) => { document.getElementById('userInput').value = e.results[0][0].transcript; };
+                recognition.onerror = () => { document.getElementById('voiceWave').classList.remove('active'); };
+                recognition.onend = () => { document.getElementById('voiceWave').classList.remove('active'); };
+            }
+
+            const waveEl = document.getElementById('voiceWave');
+            if (waveEl.classList.contains('active')) { recognition.stop(); } else { recognition.start(); }
+        }
+
+        function setGeneratingState(loading) {
+            isGenerating = loading;
+            document.getElementById('userInput').disabled = loading;
+            document.getElementById('sendBtn').disabled = loading;
+        }
+
+        async function sendMessage() {
+            if (isGenerating) return;
+
+            // CHECK NETWORK CONNECTION
+            if (!navigator.onLine) {
+                appendMessage(document.getElementById('userInput').value.trim(), 'user', attachedFilePayload, false);
+                document.getElementById('userInput').value = '';
+                clearAttachment();
+                appendBotResponse("Network Error: No internet or Wi-Fi connection detected. Please check your connection and try again.", null, "Offline", false, false);
+                return;
+            }
+
+            if (!checkIsDeveloper() && state.tokens <= 0) {
+                alert("Out of tokens! Please claim your daily tokens or top-up to continue.");
+                openTokenModal();
+                return;
+            }
+
+            const userInputEl = document.getElementById('userInput');
+            const text = userInputEl.value.trim();
+            const currentAttachment = attachedFilePayload;
+            if (!text && !currentAttachment) return;
+
+            setGeneratingState(true);
+
+            if (API_KEY === "PASTE_API_KEY_BARU_DI_SINI" || !API_KEY) {
+                appendMessage(text, 'user', currentAttachment, true);
+                userInputEl.value = '';
+                clearAttachment();
+                appendBotResponse("Configuration Error: API Key has not been set up in the JavaScript file.", null, "Error", false, true);
+                setGeneratingState(false);
+                return;
+            }
+
+            appendMessage(text, 'user', currentAttachment, true);
+            userInputEl.value = '';
+            clearAttachment();
+
+            if (!checkIsDeveloper()) {
+                state.tokens -= 1;
+                saveState();
+                updateSystemUI();
+            }
+
+            const typingId = appendTypingIndicator();
+            const response = await generateRobloxScript(text);
+            
+            removeTypingIndicator(typingId);
+            appendBotResponse(response.text, response.code, response.modelUsed, response.isFallback, true);
+            setGeneratingState(false);
+        }
+
+        async function generateRobloxScript(query) {
+            const endpoint = "https://openrouter.ai/api/v1/chat/completions";
+            const userChosenModel = localStorage.getItem("prism_preferred_model") || "openrouter/free";
+            const models = [userChosenModel, "openrouter/free", "meta-llama/llama-3.1-8b-instruct:free", "google/gemini-flash-1.5:free"];
+            
+            let systemPrompt = localStorage.getItem("prism_custom_system") || `You are Prism AI, an expert Roblox Luau Developer. 
+MANDATORY RULE: Always wrap all Luau/Lua script answers strictly inside markdown code blocks starting with \`\`\`luau and ending with \`\`\`. Do not output raw script without a code block.`;
+
+            let attempts = 0;
+
+            if (!navigator.onLine) {
+                return { 
+                    text: "Connection Failed: No Wi-Fi or internet connection detected. Please connect to Wi-Fi/data and try again.", 
+                    code: null, 
+                    modelUsed: "Offline" 
+                };
+            }
+
+            for (let model of models) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_KEY}`,
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Prism AI Pro'
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: query }]
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok || data.error) {
+                        attempts++;
+                        continue;
+                    }
+
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        let rawText = data.choices[0].message.content;
+                        let code = null;
+                        let text = rawText;
+
+                        const codeMatch = rawText.match(/```(?:luau|lua|roblox)?\n([\s\S]*?)```/i);
+                        if (codeMatch) {
+                            code = codeMatch[1].trim();
+                            text = rawText.replace(/```(?:luau|lua|roblox)?\n[\s\S]*?```/i, '').trim();
+                        } else {
+                            const luauKeywords = /\b(local|function|game:GetService|Instance\.new|connect|task\.wait|script\.Parent)\b/i;
+                            if (luauKeywords.test(rawText)) {
+                                code = rawText.trim();
+                                text = "Here is your generated Roblox script:";
+                            }
+                        }
+
+                        const activeModelDisplay = document.getElementById('activeModelDisplay');
+                        activeModelDisplay.innerHTML = `<svg style="width:10px;height:10px;fill:currentColor;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg> Model: ${model.split('/')[1] || model}`;
+                        return { text: text || "Here is your script:", code, modelUsed: model, isFallback: attempts > 0 };
+                    }
+                } catch (err) {
+                    attempts++;
+                }
+            }
+
+            return { 
+                text: "Connection Failed: Unable to reach the server. Please verify your Wi-Fi/Internet connection or check if your API key is valid.", 
+                code: null, 
+                modelUsed: "Network Error" 
+            };
+        }
+
+        function appendMessage(text, sender, attachment, saveToStorage = true) {
+            const chatInner = document.getElementById('chatInner');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            const avatarHtml = sender === 'user' ? '<div class="avatar">U</div>' : BOT_AVATAR_HTML;
+            
+            let contentHtml = '';
+            if (attachment) {
+                if (attachment.type && attachment.type.startsWith('image/')) {
+                    contentHtml += `<img src="${attachment.data}" class="attachment-preview-img">`;
+                } else {
+                    contentHtml += `<div class="file-pill-tag"><svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>${escapeHtml(attachment.name)}</div>`;
+                }
+            }
+            if (text) { contentHtml += `<div>${escapeHtml(text)}</div>`; }
+
+            msgDiv.innerHTML = `${avatarHtml}<div class="message-content">${contentHtml}</div>`;
+            chatInner.appendChild(msgDiv);
+            scrollToBottom();
+
+            if (saveToStorage) {
+                let msgs = JSON.parse(localStorage.getItem("prism_msgs_" + currentChatId) || "[]");
+                msgs.push({ sender: sender, text: text, attachment: attachment });
+                saveCurrentChatMessages(msgs);
+            }
+        }
+
+        function appendTypingIndicator() {
+            const chatInner = document.getElementById('chatInner');
+            const id = 'typing-' + Date.now();
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message bot';
+            msgDiv.id = id;
+            msgDiv.innerHTML = `
+                ${BOT_AVATAR_HTML}
+                <div class="message-content">
+                    <div class="typing-bubble-container">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>`;
+            chatInner.appendChild(msgDiv);
+            scrollToBottom();
+            return id;
+        }
+
+        function removeTypingIndicator(id) { const el = document.getElementById(id); if (el) el.remove(); }
+
+        function appendBotResponse(text, code, modelUsed, isFallback, saveToStorage = true) {
+            const chatInner = document.getElementById('chatInner');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message bot';
+            
+            let html = `${BOT_AVATAR_HTML}<div class="message-content">`;
+            if (isFallback) {
+                html += `<div style="background: rgba(242, 184, 181, 0.1); padding: 6px 10px; border-radius: 8px; font-size: 0.75rem; color: var(--danger); margin-bottom: 8px;">Switched to fallback model</div>`;
+            }
+            html += escapeHtml(text);
+            if (code) {
+                const codeId = 'code-' + Date.now();
+                html += `<div class="code-container"><div class="code-header"><span>Luau Script</span><button class="code-action-btn" onclick="copyCode('${codeId}')">Copy</button></div><pre><code id="${codeId}">${escapeHtml(code)}</code></pre></div>`;
+            }
+            html += `</div>`;
+            
+            msgDiv.innerHTML = html;
+            chatInner.appendChild(msgDiv);
+            scrollToBottom();
+
+            if (saveToStorage) {
+                let msgs = JSON.parse(localStorage.getItem("prism_msgs_" + currentChatId) || "[]");
+                msgs.push({ sender: 'bot', text: text, code: code, modelUsed: modelUsed, isFallback: isFallback });
+                saveCurrentChatMessages(msgs);
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chatContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(text) { if (!text) return ''; return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+        
+        function copyCode(id) {
+            navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => {
+                let btn = event.target; btn.innerText = 'Copied!'; setTimeout(() => { btn.innerText = 'Copy'; }, 2000);
+            });
+        }
+
+        // INITIAL LOAD
+        initDeveloperSystem();
+        updateSystemUI();
+        renderHistorySidebar();
+        loadChat(currentChatId);
     </script>
 </body>
 </html>
