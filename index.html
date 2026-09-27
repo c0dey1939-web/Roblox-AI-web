@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Roblox AI Helper</title>
+  <!-- Skrip Midtrans Sandbox -->
+  <script type="text/javascript"
+    src="https://app.sandbox.midtrans.com/snap/snap.js"
+    data-client-key="Mid-client-wdeax1Ew5u-ZrNTo"></script>
+</head>
+<body>
+  <h1>Roblox AI Generator</h1>
+  <button onclick="bayar()">Beli Kuota AI (Rp 10.000)</button>
+
+  <script>
+    async function bayar() {
+      const response = await fetch('/api/payment?action=create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 10000, customerName: "Player Roblox" })
+      });
+
+      const data = await response.json();
+
+      window.snap.pay(data.token, {
+        onSuccess: function(result) {
+          alert("Pembayaran Berhasil!");
+        },
+        onPending: function(result) {
+          alert("Menunggu pembayaran...");
+        },
+        onError: function(result) {
+          alert("Pembayaran gagal!");
+        }
+      });
+    }
+  </script>
+</body>
+</html>
