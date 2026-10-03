@@ -98,18 +98,18 @@ button,input,select{font:inherit}button{cursor:pointer}.icon{width:20px;height:2
       <div class="token-grid">
         <div class="token-cell">
           <span class="token-label">Remaining</span>
-          <span class="token-value" id="sidebarTokenVal">50</span>
+          <span class="token-value" id="sidebarTokenVal">20</span>
         </div>
         <div class="token-cell">
           <span class="token-label">Limit</span>
-          <span class="token-value" id="sidebarTokenMax">50</span>
+          <span class="token-value" id="sidebarTokenMax">20</span>
         </div>
         <div class="token-cell">
           <span class="token-label">Daily Claim</span>
           <span class="token-value" id="sidebarDailyGain">+2</span>
         </div>
       </div>
-      <div class="token-foot" id="sidebarTokenFoot">Free Tier: Earns 2 tokens daily. Max limit 50.</div>
+      <div class="token-foot" id="sidebarTokenFoot">Free Tier: Earns 2 tokens daily. Max limit 20.</div>
     </div>
   </div>
 
@@ -128,13 +128,12 @@ button,input,select{font:inherit}button{cursor:pointer}.icon{width:20px;height:2
         <svg class="icon" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
       </button>
       <select class="model-select" id="modelSelect">
-        <!-- Model options dynamically populated in JS -->
       </select>
     </div>
     <div class="top-right">
       <div class="token-chip" onclick="openTokenModal()">
         <span class="token-dot"></span>
-        <span>Tokens: <strong id="mainTokenVal">50</strong> / <span id="mainTokenMax">50</span></span>
+        <span>Tokens: <strong id="mainTokenVal">20</strong> / <span id="mainTokenMax">20</span></span>
       </div>
     </div>
   </header>
@@ -201,7 +200,7 @@ button,input,select{font:inherit}button{cursor:pointer}.icon{width:20px;height:2
         <span class="token-title">Current Plan</span>
         <span class="token-status" id="modalTierBadge">FREE</span>
       </div>
-      <div class="status-line">Available Tokens: <strong id="modalTokenVal" style="color:var(--accent-cyan);">50 / 50</strong></div>
+      <div class="status-line">Available Tokens: <strong id="modalTokenVal" style="color:var(--accent-cyan);">20 / 20</strong></div>
       <div class="status-line">Daily Claim Rate: <strong id="modalDailyRate" style="color:var(--accent-cyan);">+2 Tokens/day</strong></div>
       <div class="status-line" id="modalRewardMsg" style="color:#00ffaa; font-size:0.7rem;"></div>
     </div>
@@ -225,8 +224,8 @@ const SYSTEM_INSTRUCTIONS = `
 `;
 
 const CONFIG = {
-  FREE: { maxTokens: 50, dailyGain: 2 },
-  VIP: { maxTokens: 100, dailyGain: 5 }
+  FREE: { maxTokens: 20, dailyGain: 2 },
+  VIP: { maxTokens: 20, dailyGain: 5 }
 };
 
 const MODELS_LIST = [
@@ -244,7 +243,7 @@ let modelStatusMap = {};
 
 let appState = {
   tier: "FREE",
-  tokens: 50,
+  tokens: 20,
   apiKey: "",
   isGenerating: false,
   chatHistory: []
@@ -336,8 +335,6 @@ function setTier(tier) {
   const maxLimit = CONFIG[tier].maxTokens;
   if (appState.tokens > maxLimit) {
     appState.tokens = maxLimit;
-  } else if (tier === "VIP" && appState.tokens < 50) {
-    appState.tokens += 50;
   }
   
   localStorage.setItem("prism_tokens", appState.tokens.toString());
