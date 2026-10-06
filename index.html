@@ -140,6 +140,8 @@ html.theme-dark .btn-new-chat:hover, html.theme-dark .side-action:hover { border
 .debug-why { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
 .debug-why h3 { font-family: var(--serif); margin-bottom: 6px; }
 .debug-why li { margin: 6px 0 6px 18px; }
+.debug-bug { margin: 0 0 12px; }
+.debug-bug code { display: block; margin-top: 4px; font-family: var(--mono); font-size: .78rem; white-space: pre-wrap; color: var(--text); }
 .api-key-input {
   width: 100%; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
   padding: 8px; color: var(--text); font-size: .78rem; outline: none;
@@ -952,15 +954,50 @@ function fillDebugSample() {
   if (!box) return;
   box.value = "def average(prices):\n    total = 0\n    for price in prices:\n        total = total + price\n    return total / 0\n";
 }
+function cleanDebugText(value) {
+  return String(value || "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/class\s*=\s*"?token-[^">]+"?>/gi, "")
+    .replace(/\\"/g, '"')
+    .replace(/\\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function extractDebugBugs(text) {
+  const bugs = [];
+  const re = /"line"\s*:\s*(\d+)[\s\S]{0,80}?"text"\s*:\s*"((?:\\.|[^"\\])*)"[\s\S]{0,160}?"reason"\s*:\s*"((?:\\.|[^"\\])*)"/g;
+  let match;
+  while ((match = re.exec(text))) bugs.push({ line: Number(match[1]), text: match[2], reason: match[3] });
+  return bugs;
+}
+function extractWhy(text) {
+  const match = String(text || "").match(/"why"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  return match ? match[1] : "";
+}
 function parseDebug(text) {
   const raw = stripThink(text || "").replace(/```(?:json)?/gi, "");
+  let report = null;
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-  const slice = raw.slice(start, end + 1);
-  try { return JSON.parse(slice); } catch (e) {
-    try { return JSON.parse(slice.replace(/,\s*([}\]])/g, "$1")); } catch (err) { return null; }
+  if (start >= 0 && end > start) {
+    const slice = raw.slice(start, end + 1);
+    try { report = JSON.parse(slice); } catch (e) {
+      try { report = JSON.parse(slice.replace(/,\s*([}\]])/g, "$1")); } catch (err) { report = null; }
+    }
   }
+  if (!report || !Array.isArray(report.bugs)) {
+    const bugs = extractDebugBugs(raw);
+    const why = extractWhy(raw);
+    if (!bugs.length && !why) return null;
+    report = { bugs: bugs, why: why, fixed: "" };
+  }
+  report.bugs = (report.bugs || []).map(function(bug) {
+    return { line: Number(bug.line) || 0, text: cleanDebugText(bug.text), reason: cleanDebugText(bug.reason).slice(0, 280) };
+  }).filter(function(bug) { return bug.reason.length > 2; });
+  report.why = cleanDebugText(report.why);
+  if (!report.why || report.why.indexOf('"bugs"') !== -1 || report.why.charAt(0) === "{") report.why = cleanDebugText(extractWhy(raw));
+  report.fixed = String(report.fixed || "").replace(/<[^>]+>/g, "").replace(/class\s*=\s*\"?token-[^\">]+\"?>/gi, "").trim();
+  return report;
 }
 function localDebug(code) {
   const lines = String(code || "").replace(/\n$/, "").split("\n");
@@ -969,7 +1006,8 @@ function localDebug(code) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.indexOf("--") === 0 || trimmed.indexOf("#") === 0) return;
     if (/\/\s*0(?![\d.])/.test(trimmed)) bugs.push({ line: index + 1, text: trimmed, reason: t("divideByZero") });
-    if (/\b(if|while|elif)\b/.test(trimmed) && /=[^=]/.test(trimmed) && !/[=!<>]=/.test(trimmed)) bugs.push({ line: index + 1, text: trimmed, reason: t("badAssign") });
+    const condition = trimmed.split(/\bthen\b|:/)[0];
+    if (/^\s*(if|while|elif)\b/.test(trimmed) && /=[^=]/.test(condition) && !/[=!<>]=/.test(condition)) bugs.push({ line: index + 1, text: trimmed, reason: t("badAssign") });
   });
   const notes = [];
   const first = (lines[0] || "").trim();
@@ -1000,14 +1038,16 @@ function renderDebug(code, report) {
   const skipped = [];
   bugs.forEach(function(bug) {
     let line = Number(bug.line);
-    const quoted = String(bug.text || "").trim();
-    if (quoted && String(lines[line - 1] || "").trim() !== quoted) {
+    const quoted = cleanDebugText(bug.text);
+    const reason = cleanDebugText(bug.reason);
+    if (!reason) return;
+    if (!(line > 0 && line <= lines.length)) {
       const hits = [];
-      lines.forEach(function(l, i) { if (String(l).trim() === quoted) hits.push(i + 1); });
+      if (quoted) lines.forEach(function(l, i) { if (cleanDebugText(l) === quoted) hits.push(i + 1); });
       line = hits.length === 1 ? hits[0] : 0;
     }
-    if (line > 0 && quoted && String(lines[line - 1] || "").trim() === quoted) bad[line] = bug.reason || "This line looks wrong.";
-    else skipped.push(bug);
+    if (line > 0 && line <= lines.length) bad[line] = reason;
+    else skipped.push({ line: line, reason: reason });
   });
   const board = document.createElement("div");
   board.className = "debug-lines";
@@ -1033,7 +1073,11 @@ function renderDebug(code, report) {
   const list = document.createElement("ul");
   Object.keys(bad).forEach(function(line) {
     const item = document.createElement("li");
+    item.className = "debug-bug";
     item.textContent = t("linePrefix") + " " + line + ": " + bad[line];
+    const sample = document.createElement("code");
+    sample.textContent = lines[Number(line) - 1] || "";
+    item.appendChild(sample);
     list.appendChild(item);
   });
   if (!Object.keys(bad).length) {
@@ -1042,15 +1086,15 @@ function renderDebug(code, report) {
     list.appendChild(item);
   }
   why.appendChild(list);
-  if (report && report.why) {
+  skipped.forEach(function(bug) {
+    const item = document.createElement("li");
+    item.textContent = bug.reason;
+    list.appendChild(item);
+  });
+  if (report && report.why && report.why.indexOf('"bugs"') === -1 && report.why.charAt(0) !== "{") {
     const para = document.createElement("p");
     para.textContent = report.why;
     why.appendChild(para);
-  }
-  if (skipped.length) {
-    const note = document.createElement("p");
-    note.textContent = t("skippedNote", { n: skipped.length });
-    why.appendChild(note);
   }
   box.appendChild(why);
   if (report && report.fixed) {
@@ -1109,7 +1153,7 @@ function renderDebugDiff(before, after) {
 }
 function debugMessages(code) {
   return [
-    { role: "system", content: "You find ordinary mistakes in code a student pasted. Reply with one JSON object only, no markdown. Do not write malware or attack code. Shape: {\"bugs\":[{\"line\":2,\"text\":\"the exact code on that line\",\"reason\":\"why this line is wrong\"}],\"why\":\"short explanation\",\"fixed\":\"full fixed code\"}. Line numbers start at 1. The text field must copy the line exactly. If you are not sure, leave bugs empty and explain in why." },
+    { role: "system", content: "You find ordinary mistakes in code a student pasted. Reply with one JSON object only. Do not write malware or attack code. Do not use HTML. Each reason is one plain sentence. Shape: {\"bugs\":[{\"line\":2,\"text\":\"exact source line\",\"reason\":\"one plain sentence\"}],\"why\":\"one plain sentence\",\"fixed\":\"full fixed code\"}. Line numbers start at 1. Copy the source line exactly." },
     { role: "user", content: "Find ordinary bugs in this code and return the JSON object.\n\n" + code }
   ];
 }
@@ -1175,9 +1219,8 @@ async function runDebug() {
       const packed = stripThink((result.text || "") + "\n" + (result.reasoning || ""));
       report = parseDebug(packed);
       if (report) { report.model = result.model || model; break; }
-      if (packed.trim().length > 20) {
-        const fence = packed.match(/```[^\n]*\n([\s\S]*?)```/);
-        report = { bugs: [], why: packed.trim().slice(0, 1400), fixed: fence ? fence[1].trim() : "", model: result.model || model };
+      if (packed.trim().length > 20 && packed.indexOf('"bugs"') === -1 && packed.indexOf("{") === -1) {
+        report = { bugs: [], why: cleanDebugText(packed).slice(0, 500), fixed: "", model: result.model || model };
         break;
       }
       lastError = result.error || t("debugEmpty");
